@@ -192,6 +192,11 @@ h2 {
   margin-bottom: 14px;
 }
 
+.result-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .file-drop {
   display: flex;
   align-items: center;
@@ -491,6 +496,7 @@ textarea:focus,
   .controls,
   .doi-controls,
   .language-control,
+  .result-actions,
   .panel-heading,
   .result-header {
     align-items: stretch;

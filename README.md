@@ -8,9 +8,11 @@ Reference Audit is a local browser prototype for checking whether thesis or manu
 - Supports English and Portuguese interface text.
 - Verifies a pasted DOI or DOI URL directly.
 - Extracts likely reference lists from selectable-text PDFs.
+- Reconstructs PDF references with coordinate-based line ordering and hyphenation cleanup.
 - Detects DOI, year, inferred title, and lead author clues.
 - Checks public metadata in Crossref and OpenAlex.
 - Scores likely matches and labels each reference as `Verified`, `Needs Review`, or `Not Found`.
+- Includes a feedback view for reviewing references that were verified.
 - Exports the audit results as CSV.
 
 ## Run it

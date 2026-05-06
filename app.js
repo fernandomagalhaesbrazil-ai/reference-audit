@@ -6,6 +6,7 @@ const languageSelect = document.querySelector("#languageSelect");
 const checkButton = document.querySelector("#checkButton");
 const clearButton = document.querySelector("#clearButton");
 const sampleButton = document.querySelector("#sampleButton");
+const feedbackButton = document.querySelector("#feedbackButton");
 const downloadButton = document.querySelector("#downloadButton");
 const resultsList = document.querySelector("#resultsList");
 const networkStatus = document.querySelector("#networkStatus");
@@ -19,6 +20,7 @@ let latestResults = [];
 let pdfJsPromise = null;
 let currentLanguage = localStorage.getItem("referenceAuditLanguage") || "en";
 let currentStatus = { key: "ready", tone: "neutral", params: {} };
+let resultFilter = "all";
 
 const pdfJsVersion = "5.6.205";
 
@@ -42,6 +44,8 @@ const translations = {
     clearButton: "Clear",
     resultsTitle: "Audit Results",
     downloadButton: "Download CSV",
+    feedbackButton: "Feedback",
+    showAllButton: "Show All",
     metricsAria: "Audit summary",
     verifiedLabel: "Verified",
     reviewLabel: "Needs Review",
@@ -61,6 +65,8 @@ const translations = {
     checking: "Checking",
     checkingButton: "Checking...",
     complete: "Complete",
+    showingVerified: "Showing verified",
+    noVerifiedResults: "No verified references",
     noDoiFound: "No DOI found",
     enterDoi: "Enter a DOI or DOI URL",
     checkingDoiButton: "Checking DOI...",
@@ -116,6 +122,8 @@ const translations = {
     clearButton: "Limpar",
     resultsTitle: "Resultados da Auditoria",
     downloadButton: "Baixar CSV",
+    feedbackButton: "Feedback",
+    showAllButton: "Mostrar Todas",
     metricsAria: "Resumo da auditoria",
     verifiedLabel: "Verificado",
     reviewLabel: "Revisar",
@@ -135,6 +143,8 @@ const translations = {
     checking: "Verificando",
     checkingButton: "Verificando...",
     complete: "Concluido",
+    showingVerified: "Mostrando verificadas",
+    noVerifiedResults: "Nenhuma referencia verificada",
     noDoiFound: "Nenhum DOI encontrado",
     enterDoi: "Digite um DOI ou URL de DOI",
     checkingDoiButton: "Verificando DOI...",
@@ -194,7 +204,10 @@ clearButton.addEventListener("click", () => {
   input.value = "";
   doiInput.value = "";
   latestResults = [];
+  resultFilter = "all";
   downloadButton.disabled = true;
+  feedbackButton.disabled = true;
+  feedbackButton.textContent = t("feedbackButton");
   updateSummary([]);
   renderEmptyState();
   setStatus("ready", "neutral");
@@ -249,6 +262,14 @@ doiButton.addEventListener("click", async () => {
   await auditReferences(dois.map((doi) => `DOI: ${doi}`), "checkingDoiButton");
 });
 
+feedbackButton.addEventListener("click", () => {
+  if (!latestResults.length) return;
+  resultFilter = resultFilter === "verified" ? "all" : "verified";
+  renderResults();
+  updateResultActions();
+  setStatus(resultFilter === "verified" ? "showingVerified" : "complete", resultFilter === "verified" ? "neutral" : "ok");
+});
+
 downloadButton.addEventListener("click", () => {
   const csv = toCsv(latestResults);
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -282,13 +303,9 @@ function setLanguage(language) {
   networkStatus.textContent = t(currentStatus.key, currentStatus.params);
   networkStatus.className = `pill ${currentStatus.tone}`;
 
-  if (latestResults.length) {
-    resultsList.replaceChildren();
-    latestResults.forEach(renderResult);
-  } else {
-    renderEmptyState();
-  }
+  renderResults();
   updateSummary(latestResults);
+  updateResultActions();
 }
 
 function t(key, params = {}) {
@@ -315,22 +332,24 @@ function extractDoiValues(text) {
 }
 
 async function auditReferences(references, busyLabel) {
+  resultFilter = "all";
+  latestResults = [];
+  updateResultActions();
   setBusy(true, busyLabel);
   setStatus("checking", "neutral");
   resultsList.replaceChildren();
-  latestResults = [];
 
   for (const [index, reference] of references.entries()) {
     summaryStatus.textContent = t("checkingProgress", { current: index + 1, total: references.length });
     const result = await verifyReference(reference);
     latestResults.push(result);
-    renderResult(result);
+    renderResults();
     updateSummary(latestResults);
   }
 
   setBusy(false);
   setStatus("complete", "ok");
-  downloadButton.disabled = !latestResults.length;
+  updateResultActions();
 }
 
 function parsePlainReferences(text) {
@@ -388,7 +407,7 @@ async function extractTextFromPdf(file) {
     setStatus("readingPdfPage", "neutral", { page: pageNumber, pages: pdf.numPages });
     const page = await pdf.getPage(pageNumber);
     const textContent = await page.getTextContent();
-    pages.push(textItemsToLines(textContent.items).join("\n"));
+    pages.push(textItemsToLines(textContent.items));
   }
 
   return pages.join("\n\n");
@@ -419,35 +438,92 @@ function extractReferencesSection(text) {
 }
 
 function textItemsToLines(items) {
-  const lines = [];
-  let currentLine = "";
-  let currentY = null;
+  const positionedItems = items
+    .map((item) => ({
+      text: item.str?.replace(/\s+/g, " ").trim() || "",
+      x: Number.isFinite(item.transform?.[4]) ? item.transform[4] : 0,
+      y: Number.isFinite(item.transform?.[5]) ? item.transform[5] : 0,
+      width: Number.isFinite(item.width) ? item.width : 0
+    }))
+    .filter((item) => item.text);
 
-  for (const item of items) {
-    const itemY = Number.isFinite(item.transform?.[5]) ? item.transform[5] : null;
-    const startsNewLine = currentY !== null && itemY !== null && Math.abs(itemY - currentY) > 4;
-
-    if (startsNewLine && currentLine.trim()) {
-      lines.push(currentLine.trim());
-      currentLine = "";
-    }
-
-    currentLine = `${currentLine} ${item.str}`.trim();
-    currentY = itemY ?? currentY;
-
-    if (item.hasEOL && currentLine.trim()) {
-      lines.push(currentLine.trim());
-      currentLine = "";
-      currentY = null;
+  const lineGroups = [];
+  for (const item of positionedItems.sort((a, b) => b.y - a.y || a.x - b.x)) {
+    const line = lineGroups.find((group) => Math.abs(group.y - item.y) <= 3);
+    if (line) {
+      line.items.push(item);
+      line.y = (line.y + item.y) / 2;
+    } else {
+      lineGroups.push({ y: item.y, items: [item] });
     }
   }
 
-  if (currentLine.trim()) lines.push(currentLine.trim());
-  return lines;
+  return orderPdfLines(lineGroups)
+    .map((line) => line.items.sort((a, b) => a.x - b.x))
+    .map((itemsInLine) => joinLineItems(itemsInLine))
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
+}
+
+function orderPdfLines(lineGroups) {
+  const lines = lineGroups.map((group) => ({
+    ...group,
+    minX: Math.min(...group.items.map((item) => item.x)),
+    maxX: Math.max(...group.items.map((item) => item.x + item.width))
+  }));
+
+  const startPositions = [...new Set(lines.map((line) => Math.round(line.minX / 10) * 10))].sort((a, b) => a - b);
+  let largestGap = 0;
+  let columnBreak = null;
+
+  for (let index = 1; index < startPositions.length; index += 1) {
+    const gap = startPositions[index] - startPositions[index - 1];
+    if (gap > largestGap) {
+      largestGap = gap;
+      columnBreak = (startPositions[index] + startPositions[index - 1]) / 2;
+    }
+  }
+
+  if (columnBreak && largestGap > 140) {
+    const leftColumn = lines.filter((line) => line.minX < columnBreak);
+    const rightColumn = lines.filter((line) => line.minX >= columnBreak);
+    if (leftColumn.length >= 3 && rightColumn.length >= 3) {
+      return [leftColumn, rightColumn]
+        .map((column) => column.sort((a, b) => b.y - a.y || a.minX - b.minX))
+        .flat();
+    }
+  }
+
+  return lines.sort((a, b) => b.y - a.y || a.minX - b.minX);
+}
+
+function joinLineItems(itemsInLine) {
+  let line = "";
+  let previousEnd = null;
+
+  for (const item of itemsInLine) {
+    const gap = previousEnd === null ? 0 : item.x - previousEnd;
+    const separator = !line || gap < 1 || /^[,.;:)\]]/.test(item.text) ? "" : " ";
+    line = `${line}${separator}${item.text}`;
+    previousEnd = item.x + item.width;
+  }
+
+  return line;
+}
+
+function normalizeExtractedPdfText(text) {
+  return text
+    .replace(/\u00ad/g, "")
+    .replace(/([A-Za-z])-\s*\n\s*([A-Za-z])/g, "$1$2")
+    .replace(/\bdoi\s*:\s*/gi, "doi:")
+    .replace(/https?:\s+\/\s+\//gi, "https://")
+    .replace(/\s+([,.;:)\]])/g, "$1")
+    .replace(/([(])\s+/g, "$1");
 }
 
 function formatExtractedReferences(text) {
-  const lines = text
+  const lines = normalizeExtractedPdfText(text)
     .replace(/\f/g, "\n")
     .split(/\n+/)
     .map((line) => line.replace(/\s+/g, " ").trim())
@@ -466,11 +542,24 @@ function formatExtractedReferences(text) {
   }
 
   if (current) entries.push(current);
-  return entries.map(cleanReference).filter((entry) => entry.length > 12).join("\n");
+  return splitMergedReferences(entries)
+    .map(cleanReference)
+    .filter((entry) => entry.length > 12)
+    .join("\n");
+}
+
+function splitMergedReferences(entries) {
+  return entries.flatMap((entry) => {
+    const numberedParts = entry.split(/\s+(?=(?:\[\d+\]|\d+\.)\s+)/g).filter(Boolean);
+    if (numberedParts.length > 1) return numberedParts;
+    return entry.split(/\.\s+(?=[A-Z][A-Za-z' -]{1,45},\s+(?:[A-Z]\.|[A-Z][a-z]))/g)
+      .map((part, index, parts) => index < parts.length - 1 ? `${part}.` : part)
+      .filter(Boolean);
+  });
 }
 
 function isReferenceStart(line) {
-  return /^\s*(?:\[\d+\]|\d+\.|\d+\s+|[A-Z][A-Za-z' -]{1,45},\s+(?:[A-Z]\.|[A-Z][a-z]))/.test(line);
+  return /^\s*(?:\[\d+\]|\d+\.|\d+\s+|[A-Z][A-Za-z' -]{1,45},\s+(?:[A-Z]\.|[A-Z][a-z])|[A-Z][A-Za-z' -]{1,45}\s+[A-Z]{1,3}(?:,|\s+\())/.test(line);
 }
 
 async function verifyReference(reference) {
@@ -785,6 +874,39 @@ function renderEmptyState() {
   `;
 }
 
+function renderResults() {
+  resultsList.replaceChildren();
+
+  if (!latestResults.length) {
+    renderEmptyState();
+    return;
+  }
+
+  const visibleResults = resultFilter === "verified"
+    ? latestResults.filter((result) => result.status === "verified")
+    : latestResults;
+
+  if (!visibleResults.length) {
+    resultsList.innerHTML = `
+      <div class="empty-state">
+        <h3>${t("noVerifiedResults")}</h3>
+        <p>${t("emptyText")}</p>
+      </div>
+    `;
+    return;
+  }
+
+  visibleResults.forEach(renderResult);
+}
+
+function updateResultActions() {
+  const hasResults = latestResults.length > 0;
+  const hasVerified = latestResults.some((result) => result.status === "verified");
+  downloadButton.disabled = !hasResults;
+  feedbackButton.disabled = !hasVerified;
+  feedbackButton.textContent = resultFilter === "verified" ? t("showAllButton") : t("feedbackButton");
+}
+
 function updateSummary(results) {
   const counts = {
     verified: results.filter((result) => result.status === "verified").length,
@@ -803,6 +925,8 @@ function setBusy(isBusy, busyLabel = "checkingButton") {
   doiInput.disabled = isBusy;
   sampleButton.disabled = isBusy;
   clearButton.disabled = isBusy;
+  feedbackButton.disabled = isBusy || !latestResults.some((result) => result.status === "verified");
+  downloadButton.disabled = isBusy || !latestResults.length;
   checkButton.textContent = isBusy ? t(busyLabel) : t("checkButton");
 }
 
