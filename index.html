@@ -59,7 +59,15 @@
           <div class="panel-heading">
             <h2 id="resultsTitle" data-i18n="resultsTitle">Audit Results</h2>
             <div class="result-actions">
-              <button id="feedbackButton" class="secondary-button" type="button" disabled data-i18n="feedbackButton">Feedback</button>
+              <label class="result-filter" for="resultFilter">
+                <span data-i18n="filterLabel">Filter</span>
+                <select id="resultFilter" disabled>
+                  <option value="all" data-i18n="filterAll">All</option>
+                  <option value="verified" data-i18n="filterVerified">Verified</option>
+                  <option value="review" data-i18n="filterReview">Needs Review</option>
+                  <option value="missing" data-i18n="filterMissing">Not Found</option>
+                </select>
+              </label>
               <button id="downloadButton" class="secondary-button" type="button" disabled data-i18n="downloadButton">Download CSV</button>
             </div>
           </div>

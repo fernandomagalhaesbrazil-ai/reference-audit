@@ -6,7 +6,7 @@ const languageSelect = document.querySelector("#languageSelect");
 const checkButton = document.querySelector("#checkButton");
 const clearButton = document.querySelector("#clearButton");
 const sampleButton = document.querySelector("#sampleButton");
-const feedbackButton = document.querySelector("#feedbackButton");
+const resultFilterSelect = document.querySelector("#resultFilter");
 const downloadButton = document.querySelector("#downloadButton");
 const resultsList = document.querySelector("#resultsList");
 const networkStatus = document.querySelector("#networkStatus");
@@ -44,8 +44,11 @@ const translations = {
     clearButton: "Clear",
     resultsTitle: "Audit Results",
     downloadButton: "Download CSV",
-    feedbackButton: "Feedback",
-    showAllButton: "Show All",
+    filterLabel: "Filter",
+    filterAll: "All",
+    filterVerified: "Verified",
+    filterReview: "Needs Review",
+    filterMissing: "Not Found",
     metricsAria: "Audit summary",
     verifiedLabel: "Verified",
     reviewLabel: "Needs Review",
@@ -65,8 +68,8 @@ const translations = {
     checking: "Checking",
     checkingButton: "Checking...",
     complete: "Complete",
-    showingVerified: "Showing verified",
-    noVerifiedResults: "No verified references",
+    filterActive: "Showing {filter}",
+    noFilteredResults: "No results for this filter",
     noDoiFound: "No DOI found",
     enterDoi: "Enter a DOI or DOI URL",
     checkingDoiButton: "Checking DOI...",
@@ -122,8 +125,11 @@ const translations = {
     clearButton: "Limpar",
     resultsTitle: "Resultados da Auditoria",
     downloadButton: "Baixar CSV",
-    feedbackButton: "Feedback",
-    showAllButton: "Mostrar Todas",
+    filterLabel: "Filtro",
+    filterAll: "Todas",
+    filterVerified: "Verificadas",
+    filterReview: "Revisar",
+    filterMissing: "Nao Encontradas",
     metricsAria: "Resumo da auditoria",
     verifiedLabel: "Verificado",
     reviewLabel: "Revisar",
@@ -143,8 +149,8 @@ const translations = {
     checking: "Verificando",
     checkingButton: "Verificando...",
     complete: "Concluido",
-    showingVerified: "Mostrando verificadas",
-    noVerifiedResults: "Nenhuma referencia verificada",
+    filterActive: "Mostrando {filter}",
+    noFilteredResults: "Nenhum resultado para este filtro",
     noDoiFound: "Nenhum DOI encontrado",
     enterDoi: "Digite um DOI ou URL de DOI",
     checkingDoiButton: "Verificando DOI...",
@@ -206,8 +212,8 @@ clearButton.addEventListener("click", () => {
   latestResults = [];
   resultFilter = "all";
   downloadButton.disabled = true;
-  feedbackButton.disabled = true;
-  feedbackButton.textContent = t("feedbackButton");
+  resultFilterSelect.disabled = true;
+  resultFilterSelect.value = "all";
   updateSummary([]);
   renderEmptyState();
   setStatus("ready", "neutral");
@@ -262,12 +268,11 @@ doiButton.addEventListener("click", async () => {
   await auditReferences(dois.map((doi) => `DOI: ${doi}`), "checkingDoiButton");
 });
 
-feedbackButton.addEventListener("click", () => {
-  if (!latestResults.length) return;
-  resultFilter = resultFilter === "verified" ? "all" : "verified";
+resultFilterSelect.addEventListener("change", () => {
+  resultFilter = resultFilterSelect.value;
   renderResults();
   updateResultActions();
-  setStatus(resultFilter === "verified" ? "showingVerified" : "complete", resultFilter === "verified" ? "neutral" : "ok");
+  setStatus(resultFilter === "all" ? "complete" : "filterActive", resultFilter === "all" ? "ok" : "neutral", { filter: getFilterLabel(resultFilter).toLowerCase() });
 });
 
 downloadButton.addEventListener("click", () => {
@@ -287,6 +292,10 @@ function setLanguage(language) {
   languageSelect.value = currentLanguage;
   document.documentElement.lang = currentLanguage === "pt" ? "pt-BR" : "en";
   document.title = t("pageTitle");
+
+  if (currentStatus.key === "filterActive") {
+    currentStatus.params = { filter: getFilterLabel(resultFilter).toLowerCase() };
+  }
 
   document.querySelectorAll("[data-i18n]").forEach((element) => {
     element.textContent = t(element.dataset.i18n);
@@ -882,14 +891,14 @@ function renderResults() {
     return;
   }
 
-  const visibleResults = resultFilter === "verified"
-    ? latestResults.filter((result) => result.status === "verified")
-    : latestResults;
+  const visibleResults = resultFilter === "all"
+    ? latestResults
+    : latestResults.filter((result) => result.status === resultFilter);
 
   if (!visibleResults.length) {
     resultsList.innerHTML = `
       <div class="empty-state">
-        <h3>${t("noVerifiedResults")}</h3>
+        <h3>${t("noFilteredResults")}</h3>
         <p>${t("emptyText")}</p>
       </div>
     `;
@@ -901,10 +910,16 @@ function renderResults() {
 
 function updateResultActions() {
   const hasResults = latestResults.length > 0;
-  const hasVerified = latestResults.some((result) => result.status === "verified");
   downloadButton.disabled = !hasResults;
-  feedbackButton.disabled = !hasVerified;
-  feedbackButton.textContent = resultFilter === "verified" ? t("showAllButton") : t("feedbackButton");
+  resultFilterSelect.disabled = !hasResults;
+  resultFilterSelect.value = resultFilter;
+}
+
+function getFilterLabel(filter) {
+  if (filter === "verified") return t("filterVerified");
+  if (filter === "review") return t("filterReview");
+  if (filter === "missing") return t("filterMissing");
+  return t("filterAll");
 }
 
 function updateSummary(results) {
@@ -925,7 +940,7 @@ function setBusy(isBusy, busyLabel = "checkingButton") {
   doiInput.disabled = isBusy;
   sampleButton.disabled = isBusy;
   clearButton.disabled = isBusy;
-  feedbackButton.disabled = isBusy || !latestResults.some((result) => result.status === "verified");
+  resultFilterSelect.disabled = isBusy || !latestResults.length;
   downloadButton.disabled = isBusy || !latestResults.length;
   checkButton.textContent = isBusy ? t(busyLabel) : t("checkButton");
 }

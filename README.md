@@ -12,7 +12,7 @@ Reference Audit is a local browser prototype for checking whether thesis or manu
 - Detects DOI, year, inferred title, and lead author clues.
 - Checks public metadata in Crossref and OpenAlex.
 - Scores likely matches and labels each reference as `Verified`, `Needs Review`, or `Not Found`.
-- Includes a feedback view for reviewing references that were verified.
+- Filters audit results by all, verified, needs review, or not found.
 - Exports the audit results as CSV.
 
 ## Run it

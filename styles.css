@@ -194,7 +194,32 @@ h2 {
 
 .result-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
+}
+
+.result-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.result-filter select {
+  min-height: 38px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 10px;
+  outline: none;
+}
+
+.result-filter select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .file-drop {
@@ -497,6 +522,7 @@ textarea:focus,
   .doi-controls,
   .language-control,
   .result-actions,
+  .result-filter,
   .panel-heading,
   .result-header {
     align-items: stretch;
