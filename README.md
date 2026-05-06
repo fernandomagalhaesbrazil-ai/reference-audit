@@ -5,6 +5,7 @@ Reference Audit is a local browser prototype for checking whether thesis or manu
 ## What it does
 
 - Accepts pasted references, PDF, TXT, Markdown, BibTeX, and RIS.
+- Supports English and Portuguese interface text.
 - Verifies a pasted DOI or DOI URL directly.
 - Extracts likely reference lists from selectable-text PDFs.
 - Detects DOI, year, inferred title, and lead author clues.

@@ -32,7 +32,8 @@ body {
 
 button,
 textarea,
-input {
+input,
+select {
   font: inherit;
 }
 
@@ -95,6 +96,30 @@ h2 {
   gap: 10px;
   color: var(--muted);
   white-space: nowrap;
+}
+
+.language-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.language-control select {
+  min-height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 0 10px;
+  outline: none;
+}
+
+.language-control select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .pill {
@@ -437,6 +462,7 @@ textarea:focus,
   }
 
   .status-strip {
+    flex-wrap: wrap;
     margin-top: 16px;
   }
 
@@ -462,6 +488,7 @@ textarea:focus,
 
   .controls,
   .doi-controls,
+  .language-control,
   .panel-heading,
   .result-header {
     align-items: stretch;

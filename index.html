@@ -10,10 +10,17 @@
     <main class="app-shell">
       <header class="topbar">
         <div>
-          <p class="eyebrow">Thesis Reference Audit</p>
-          <h1>Reference verifier for technical manuscripts</h1>
+          <p class="eyebrow" data-i18n="eyebrow">Thesis Reference Audit</p>
+          <h1 data-i18n="headline">Reference verifier for technical manuscripts</h1>
         </div>
         <div class="status-strip" aria-live="polite">
+          <label class="language-control" for="languageSelect">
+            <span data-i18n="languageLabel">Language</span>
+            <select id="languageSelect">
+              <option value="en">English</option>
+              <option value="pt">Português</option>
+            </select>
+          </label>
           <span id="networkStatus" class="pill neutral">Ready</span>
           <span id="summaryStatus" class="summary">0 checked</span>
         </div>
@@ -22,57 +29,57 @@
       <section class="workspace">
         <aside class="input-panel" aria-labelledby="inputTitle">
           <div class="panel-heading">
-            <h2 id="inputTitle">References</h2>
-            <button id="sampleButton" class="ghost-button" type="button">Sample</button>
+            <h2 id="inputTitle" data-i18n="referencesTitle">References</h2>
+            <button id="sampleButton" class="ghost-button" type="button" data-i18n="sampleButton">Sample</button>
           </div>
 
           <label class="file-drop" for="fileInput">
             <input id="fileInput" type="file" accept=".txt,.bib,.ris,.md,.pdf,application/pdf">
-            <span>Import PDF, TXT, BibTeX, RIS, or Markdown</span>
+            <span data-i18n="fileDrop">Import PDF, TXT, BibTeX, RIS, or Markdown</span>
           </label>
-          <p class="helper-text">PDF import extracts the references section from selectable text. Scanned PDFs still need OCR first.</p>
+          <p class="helper-text" data-i18n="fileHelp">PDF import extracts the references section from selectable text. Scanned PDFs still need OCR first.</p>
 
           <div class="doi-lookup">
-            <label for="doiInput">DOI Lookup</label>
+            <label for="doiInput" data-i18n="doiLookupLabel">DOI Lookup</label>
             <div class="doi-controls">
               <input id="doiInput" type="text" inputmode="url" placeholder="10.1126/science.117.3046.528">
-              <button id="doiButton" class="secondary-button" type="button">Verify DOI</button>
+              <button id="doiButton" class="secondary-button" type="button" data-i18n="doiButton">Verify DOI</button>
             </div>
           </div>
 
-          <textarea id="referenceInput" spellcheck="false" placeholder="Paste bibliography entries here. Use one reference per line, or paste BibTeX / RIS blocks."></textarea>
+          <textarea id="referenceInput" spellcheck="false" placeholder="Paste bibliography entries here. Use one reference per line, or paste BibTeX / RIS blocks." data-i18n-placeholder="referencePlaceholder"></textarea>
 
           <div class="controls">
-            <button id="checkButton" class="primary-button" type="button">Check References</button>
-            <button id="clearButton" class="secondary-button" type="button">Clear</button>
+            <button id="checkButton" class="primary-button" type="button" data-i18n="checkButton">Check References</button>
+            <button id="clearButton" class="secondary-button" type="button" data-i18n="clearButton">Clear</button>
           </div>
         </aside>
 
         <section class="results-panel" aria-labelledby="resultsTitle">
           <div class="panel-heading">
-            <h2 id="resultsTitle">Audit Results</h2>
-            <button id="downloadButton" class="secondary-button" type="button" disabled>Download CSV</button>
+            <h2 id="resultsTitle" data-i18n="resultsTitle">Audit Results</h2>
+            <button id="downloadButton" class="secondary-button" type="button" disabled data-i18n="downloadButton">Download CSV</button>
           </div>
 
-          <div class="metrics" aria-label="Audit summary">
+          <div class="metrics" aria-label="Audit summary" data-i18n-aria-label="metricsAria">
             <div>
               <span id="verifiedCount">0</span>
-              <p>Verified</p>
+              <p data-i18n="verifiedLabel">Verified</p>
             </div>
             <div>
               <span id="reviewCount">0</span>
-              <p>Needs Review</p>
+              <p data-i18n="reviewLabel">Needs Review</p>
             </div>
             <div>
               <span id="notFoundCount">0</span>
-              <p>Not Found</p>
+              <p data-i18n="notFoundLabel">Not Found</p>
             </div>
           </div>
 
           <div id="resultsList" class="results-list">
             <div class="empty-state">
-              <h3>No references checked yet</h3>
-              <p>Results will appear here with source links, metadata matches, and confidence notes.</p>
+              <h3 data-i18n="emptyTitle">No references checked yet</h3>
+              <p data-i18n="emptyText">Results will appear here with source links, metadata matches, and confidence notes.</p>
             </div>
           </div>
         </section>

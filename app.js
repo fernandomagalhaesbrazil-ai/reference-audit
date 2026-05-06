@@ -2,6 +2,7 @@ const input = document.querySelector("#referenceInput");
 const fileInput = document.querySelector("#fileInput");
 const doiInput = document.querySelector("#doiInput");
 const doiButton = document.querySelector("#doiButton");
+const languageSelect = document.querySelector("#languageSelect");
 const checkButton = document.querySelector("#checkButton");
 const clearButton = document.querySelector("#clearButton");
 const sampleButton = document.querySelector("#sampleButton");
@@ -16,8 +17,161 @@ const resultTemplate = document.querySelector("#resultTemplate");
 
 let latestResults = [];
 let pdfJsPromise = null;
+let currentLanguage = localStorage.getItem("referenceAuditLanguage") || "en";
+let currentStatus = { key: "ready", tone: "neutral", params: {} };
 
 const pdfJsVersion = "5.6.205";
+
+const translations = {
+  en: {
+    pageTitle: "Reference Audit",
+    eyebrow: "Thesis Reference Audit",
+    headline: "Reference verifier for technical manuscripts",
+    languageLabel: "Language",
+    ready: "Ready",
+    checkedCount: "{count} checked",
+    checkingProgress: "{current} of {total}",
+    referencesTitle: "References",
+    sampleButton: "Sample",
+    fileDrop: "Import PDF, TXT, BibTeX, RIS, or Markdown",
+    fileHelp: "PDF import extracts the references section from selectable text. Scanned PDFs still need OCR first.",
+    doiLookupLabel: "DOI Lookup",
+    doiButton: "Verify DOI",
+    referencePlaceholder: "Paste bibliography entries here. Use one reference per line, or paste BibTeX / RIS blocks.",
+    checkButton: "Check References",
+    clearButton: "Clear",
+    resultsTitle: "Audit Results",
+    downloadButton: "Download CSV",
+    metricsAria: "Audit summary",
+    verifiedLabel: "Verified",
+    reviewLabel: "Needs Review",
+    notFoundLabel: "Not Found",
+    emptyTitle: "No references checked yet",
+    emptyText: "Results will appear here with source links, metadata matches, and confidence notes.",
+    reading: "Reading...",
+    readingPdf: "Reading PDF",
+    readingPdfPage: "Reading PDF {page}/{pages}",
+    pdfImported: "PDF Imported",
+    reviewPdfText: "Review PDF Text",
+    candidateReferences: "{count} candidate references",
+    zeroReferencesFound: "0 references found",
+    fileImported: "File Imported",
+    importFailed: "Import Failed",
+    noReferencesFound: "No references found",
+    checking: "Checking",
+    checkingButton: "Checking...",
+    complete: "Complete",
+    noDoiFound: "No DOI found",
+    enterDoi: "Enter a DOI or DOI URL",
+    checkingDoiButton: "Checking DOI...",
+    source: "Source",
+    year: "Year",
+    journal: "Journal",
+    notes: "Notes",
+    none: "None",
+    unknown: "Unknown",
+    notDetected: "Not detected",
+    confidence: "{score}% confidence",
+    untitledReference: "Untitled reference",
+    sourceRecord: "Source Record",
+    csvStatus: "status",
+    csvConfidence: "confidence",
+    csvInputReference: "input_reference",
+    csvMatchedTitle: "matched_title",
+    csvSource: "source",
+    csvDoi: "doi",
+    csvYear: "year",
+    csvJournal: "journal",
+    csvNotes: "notes",
+    noteNoMatchingRecord: "No matching record returned by Crossref or OpenAlex.",
+    noteDoiResolves: "DOI resolves to a scholarly metadata record.",
+    noteTitleMatch: "Title match: {percent}%",
+    noteDoiMatches: "DOI matches.",
+    noteDoiDiffers: "DOI differs or was not returned.",
+    noteYearMatches: "Year matches.",
+    noteYearDiffers: "Year differs: source has {year}.",
+    noteLeadAuthorMatches: "Lead author appears in source metadata.",
+    noteLeadAuthorMissing: "Lead author was not confirmed.",
+    noteLookupFailed: "Lookup failed: {message}",
+    statusVerified: "Verified",
+    statusReview: "Needs Review",
+    statusMissing: "Not Found"
+  },
+  pt: {
+    pageTitle: "Auditoria de Referencias",
+    eyebrow: "Auditoria de Referencias de Teses",
+    headline: "Verificador de referencias para manuscritos tecnicos",
+    languageLabel: "Idioma",
+    ready: "Pronto",
+    checkedCount: "{count} verificados",
+    checkingProgress: "{current} de {total}",
+    referencesTitle: "Referencias",
+    sampleButton: "Exemplo",
+    fileDrop: "Importar PDF, TXT, BibTeX, RIS ou Markdown",
+    fileHelp: "A importacao de PDF extrai a secao de referencias de texto selecionavel. PDFs escaneados precisam de OCR primeiro.",
+    doiLookupLabel: "Busca por DOI",
+    doiButton: "Verificar DOI",
+    referencePlaceholder: "Cole as referencias bibliograficas aqui. Use uma referencia por linha, ou cole blocos BibTeX / RIS.",
+    checkButton: "Verificar Referencias",
+    clearButton: "Limpar",
+    resultsTitle: "Resultados da Auditoria",
+    downloadButton: "Baixar CSV",
+    metricsAria: "Resumo da auditoria",
+    verifiedLabel: "Verificado",
+    reviewLabel: "Revisar",
+    notFoundLabel: "Nao Encontrado",
+    emptyTitle: "Nenhuma referencia verificada ainda",
+    emptyText: "Os resultados aparecerao aqui com links das fontes, comparacao de metadados e notas de confianca.",
+    reading: "Lendo...",
+    readingPdf: "Lendo PDF",
+    readingPdfPage: "Lendo PDF {page}/{pages}",
+    pdfImported: "PDF Importado",
+    reviewPdfText: "Revisar Texto do PDF",
+    candidateReferences: "{count} referencias candidatas",
+    zeroReferencesFound: "0 referencias encontradas",
+    fileImported: "Arquivo Importado",
+    importFailed: "Falha na Importacao",
+    noReferencesFound: "Nenhuma referencia encontrada",
+    checking: "Verificando",
+    checkingButton: "Verificando...",
+    complete: "Concluido",
+    noDoiFound: "Nenhum DOI encontrado",
+    enterDoi: "Digite um DOI ou URL de DOI",
+    checkingDoiButton: "Verificando DOI...",
+    source: "Fonte",
+    year: "Ano",
+    journal: "Periodico",
+    notes: "Notas",
+    none: "Nenhuma",
+    unknown: "Desconhecido",
+    notDetected: "Nao detectado",
+    confidence: "{score}% de confianca",
+    untitledReference: "Referencia sem titulo",
+    sourceRecord: "Registro da Fonte",
+    csvStatus: "status",
+    csvConfidence: "confianca",
+    csvInputReference: "referencia_informada",
+    csvMatchedTitle: "titulo_encontrado",
+    csvSource: "fonte",
+    csvDoi: "doi",
+    csvYear: "ano",
+    csvJournal: "periodico",
+    csvNotes: "notas",
+    noteNoMatchingRecord: "Nenhum registro correspondente foi retornado pelo Crossref ou OpenAlex.",
+    noteDoiResolves: "O DOI resolve para um registro de metadados academicos.",
+    noteTitleMatch: "Correspondencia do titulo: {percent}%",
+    noteDoiMatches: "O DOI corresponde.",
+    noteDoiDiffers: "O DOI difere ou nao foi retornado.",
+    noteYearMatches: "O ano corresponde.",
+    noteYearDiffers: "O ano difere: a fonte informa {year}.",
+    noteLeadAuthorMatches: "O primeiro autor aparece nos metadados da fonte.",
+    noteLeadAuthorMissing: "O primeiro autor nao foi confirmado.",
+    noteLookupFailed: "Falha na busca: {message}",
+    statusVerified: "Verificado",
+    statusReview: "Revisar",
+    statusMissing: "Nao Encontrado"
+  }
+};
 
 const sampleReferences = `Miller, S. L. (1953). A production of amino acids under possible primitive earth conditions. Science, 117(3046), 528-529. doi:10.1126/science.117.3046.528
 Lowry, O. H., Rosebrough, N. J., Farr, A. L., & Randall, R. J. (1951). Protein measurement with the Folin phenol reagent. Journal of Biological Chemistry, 193(1), 265-275.
@@ -26,6 +180,10 @@ Fake, A. B. (2022). Enzymatic moonlight signaling in imaginary chloroplast mamma
 
 const doiPattern = /\b10\.\d{4,9}\/[-._;()/:A-Z0-9]+\b/i;
 const yearPattern = /\b(18|19|20)\d{2}\b/;
+
+languageSelect.addEventListener("change", () => {
+  setLanguage(languageSelect.value);
+});
 
 sampleButton.addEventListener("click", () => {
   input.value = sampleReferences;
@@ -39,7 +197,7 @@ clearButton.addEventListener("click", () => {
   downloadButton.disabled = true;
   updateSummary([]);
   renderEmptyState();
-  setStatus("Ready", "neutral");
+  setStatus("ready", "neutral");
 });
 
 fileInput.addEventListener("change", async (event) => {
@@ -47,22 +205,22 @@ fileInput.addEventListener("change", async (event) => {
   if (!file) return;
 
   try {
-    setBusy(true, "Reading...");
+    setBusy(true, "reading");
     if (isPdfFile(file)) {
-      setStatus("Reading PDF", "neutral");
+      setStatus("readingPdf", "neutral");
       const pdfText = await extractTextFromPdf(file);
       const referenceSection = extractReferencesSection(pdfText);
       const extractedReferences = formatExtractedReferences(referenceSection || pdfText);
       input.value = extractedReferences;
       const count = parseReferences(extractedReferences).length;
-      setStatus(count ? "PDF Imported" : "Review PDF Text", count ? "ok" : "warn");
-      summaryStatus.textContent = count ? `${count} candidate references` : "0 references found";
+      setStatus(count ? "pdfImported" : "reviewPdfText", count ? "ok" : "warn");
+      summaryStatus.textContent = count ? t("candidateReferences", { count }) : t("zeroReferencesFound");
     } else {
       input.value = await file.text();
-      setStatus("File Imported", "ok");
+      setStatus("fileImported", "ok");
     }
   } catch (error) {
-    setStatus("Import Failed", "bad");
+    setStatus("importFailed", "bad");
     summaryStatus.textContent = error.message;
   } finally {
     setBusy(false);
@@ -73,22 +231,22 @@ fileInput.addEventListener("change", async (event) => {
 checkButton.addEventListener("click", async () => {
   const references = parseReferences(input.value);
   if (!references.length) {
-    setStatus("No references found", "warn");
+    setStatus("noReferencesFound", "warn");
     return;
   }
 
-  await auditReferences(references, "Checking...");
+  await auditReferences(references, "checkingButton");
 });
 
 doiButton.addEventListener("click", async () => {
   const dois = extractDoiValues(doiInput.value);
   if (!dois.length) {
-    setStatus("No DOI found", "warn");
-    summaryStatus.textContent = "Enter a DOI or DOI URL";
+    setStatus("noDoiFound", "warn");
+    summaryStatus.textContent = t("enterDoi");
     return;
   }
 
-  await auditReferences(dois.map((doi) => `DOI: ${doi}`), "Checking DOI...");
+  await auditReferences(dois.map((doi) => `DOI: ${doi}`), "checkingDoiButton");
 });
 
 downloadButton.addEventListener("click", () => {
@@ -101,6 +259,46 @@ downloadButton.addEventListener("click", () => {
   anchor.click();
   URL.revokeObjectURL(url);
 });
+
+function setLanguage(language) {
+  currentLanguage = translations[language] ? language : "en";
+  localStorage.setItem("referenceAuditLanguage", currentLanguage);
+  languageSelect.value = currentLanguage;
+  document.documentElement.lang = currentLanguage === "pt" ? "pt-BR" : "en";
+  document.title = t("pageTitle");
+
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    element.textContent = t(element.dataset.i18n);
+  });
+
+  document.querySelectorAll("[data-i18n-placeholder]").forEach((element) => {
+    element.placeholder = t(element.dataset.i18nPlaceholder);
+  });
+
+  document.querySelectorAll("[data-i18n-aria-label]").forEach((element) => {
+    element.setAttribute("aria-label", t(element.dataset.i18nAriaLabel));
+  });
+
+  networkStatus.textContent = t(currentStatus.key, currentStatus.params);
+  networkStatus.className = `pill ${currentStatus.tone}`;
+
+  if (latestResults.length) {
+    resultsList.replaceChildren();
+    latestResults.forEach(renderResult);
+  } else {
+    renderEmptyState();
+  }
+  updateSummary(latestResults);
+}
+
+function t(key, params = {}) {
+  const dictionary = translations[currentLanguage] || translations.en;
+  const template = dictionary[key] || translations.en[key] || key;
+  return Object.entries(params).reduce(
+    (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+    template
+  );
+}
 
 function parseReferences(rawText) {
   const text = rawText.trim();
@@ -118,12 +316,12 @@ function extractDoiValues(text) {
 
 async function auditReferences(references, busyLabel) {
   setBusy(true, busyLabel);
-  setStatus("Checking", "neutral");
+  setStatus("checking", "neutral");
   resultsList.replaceChildren();
   latestResults = [];
 
   for (const [index, reference] of references.entries()) {
-    summaryStatus.textContent = `${index + 1} of ${references.length}`;
+    summaryStatus.textContent = t("checkingProgress", { current: index + 1, total: references.length });
     const result = await verifyReference(reference);
     latestResults.push(result);
     renderResult(result);
@@ -131,7 +329,7 @@ async function auditReferences(references, busyLabel) {
   }
 
   setBusy(false);
-  setStatus("Complete", "ok");
+  setStatus("complete", "ok");
   downloadButton.disabled = !latestResults.length;
 }
 
@@ -187,7 +385,7 @@ async function extractTextFromPdf(file) {
   const pages = [];
 
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
-    setStatus(`Reading PDF ${pageNumber}/${pdf.numPages}`, "neutral");
+    setStatus("readingPdfPage", "neutral", { page: pageNumber, pages: pdf.numPages });
     const page = await pdf.getPage(pageNumber);
     const textContent = await page.getTextContent();
     pages.push(textItemsToLines(textContent.items).join("\n"));
@@ -305,21 +503,18 @@ async function verifyReference(reference) {
       reference,
       parsed,
       status: "missing",
-      label: "Not Found",
       score: 0,
       candidate: null,
-      notes: ["No matching record returned by Crossref or OpenAlex."]
+      notes: [note("noteNoMatchingRecord")]
     };
   }
 
   const status = best.score >= 75 ? "verified" : best.score >= 56 ? "review" : "missing";
-  const label = status === "verified" ? "Verified" : status === "review" ? "Needs Review" : "Not Found";
 
   return {
     reference,
     parsed,
     status,
-    label,
     score: best.score,
     candidate: best.candidate,
     notes: best.notes
@@ -455,7 +650,7 @@ function scoreCandidate(parsed, candidate) {
 
   const titleSimilarity = similarity(normalizeText(parsed.title), normalizeText(candidate.title));
   score += titleSimilarity * 58;
-  notes.push(`Title match: ${Math.round(titleSimilarity * 100)}%`);
+  notes.push(note("noteTitleMatch", { percent: Math.round(titleSimilarity * 100) }));
 
   if (parsed.doi) {
     const doiMatch = normalizeDoi(parsed.doi) === normalizeDoi(candidate.doi);
@@ -463,24 +658,24 @@ function scoreCandidate(parsed, candidate) {
       return {
         candidate,
         score: 100,
-        notes: ["DOI resolves to a scholarly metadata record."]
+        notes: [note("noteDoiResolves")]
       };
     }
     score += doiMatch ? 28 : -18;
-    notes.push(doiMatch ? "DOI matches." : "DOI differs or was not returned.");
+    notes.push(note(doiMatch ? "noteDoiMatches" : "noteDoiDiffers"));
   }
 
   if (parsed.year) {
     const yearMatch = parsed.year === candidate.year;
     score += yearMatch ? 10 : -8;
-    notes.push(yearMatch ? "Year matches." : `Year differs: source has ${candidate.year || "unknown"}.`);
+    notes.push(yearMatch ? note("noteYearMatches") : note("noteYearDiffers", { year: candidate.year || t("unknown").toLowerCase() }));
   }
 
   if (parsed.authorLead) {
     const authorText = normalizeText(candidate.authors.join(" "));
     const authorMatch = authorText.includes(normalizeText(parsed.authorLead));
     score += authorMatch ? 8 : -4;
-    notes.push(authorMatch ? "Lead author appears in source metadata." : "Lead author was not confirmed.");
+    notes.push(note(authorMatch ? "noteLeadAuthorMatches" : "noteLeadAuthorMissing"));
   }
 
   return {
@@ -498,6 +693,15 @@ function normalizeText(text) {
   return text.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 }
 
+function note(key, params = {}) {
+  return { key, params };
+}
+
+function formatNote(value) {
+  if (typeof value === "string") return value;
+  return t(value.key, value.params);
+}
+
 function similarity(left, right) {
   if (!left || !right) return 0;
   if (left === right) return 1;
@@ -513,29 +717,34 @@ function buildErrorResult(reference, parsed, error) {
     reference,
     parsed,
     status: "review",
-    label: "Needs Review",
     score: 0,
     candidate: null,
-    notes: [`Lookup failed: ${error.message}`]
+    notes: [note("noteLookupFailed", { message: error.message })]
   };
+}
+
+function getStatusLabel(status) {
+  if (status === "verified") return t("statusVerified");
+  if (status === "review") return t("statusReview");
+  return t("statusMissing");
 }
 
 function renderResult(result) {
   const node = resultTemplate.content.firstElementChild.cloneNode(true);
   const status = node.querySelector(".result-status");
-  status.textContent = result.label;
+  status.textContent = getStatusLabel(result.status);
   status.classList.add(result.status);
-  node.querySelector(".result-score").textContent = `${result.score}% confidence`;
-  node.querySelector(".result-title").textContent = result.candidate?.title || result.parsed.title || "Untitled reference";
+  node.querySelector(".result-score").textContent = t("confidence", { score: result.score });
+  node.querySelector(".result-title").textContent = result.candidate?.title || result.parsed.title || t("untitledReference");
   node.querySelector(".result-original").textContent = result.reference;
 
   const comparison = node.querySelector(".comparison-list");
   const rows = [
-    ["Source", result.candidate?.source || "None"],
-    ["DOI", result.candidate?.doi || result.parsed.doi || "Not detected"],
-    ["Year", result.candidate?.year || "Unknown"],
-    ["Journal", result.candidate?.journal || "Unknown"],
-    ["Notes", result.notes.join(" ")]
+    [t("source"), result.candidate?.source || t("none")],
+    ["DOI", result.candidate?.doi || result.parsed.doi || t("notDetected")],
+    [t("year"), result.candidate?.year || t("unknown")],
+    [t("journal"), result.candidate?.journal || t("unknown")],
+    [t("notes"), result.notes.map(formatNote).join(" ")]
   ];
 
   for (const [label, value] of rows) {
@@ -552,7 +761,7 @@ function renderResult(result) {
     sourceLink.href = result.candidate.url;
     sourceLink.target = "_blank";
     sourceLink.rel = "noreferrer";
-    sourceLink.textContent = "Source Record";
+    sourceLink.textContent = t("sourceRecord");
     links.append(sourceLink);
   }
   if (result.candidate?.doi) {
@@ -570,8 +779,8 @@ function renderResult(result) {
 function renderEmptyState() {
   resultsList.innerHTML = `
     <div class="empty-state">
-      <h3>No references checked yet</h3>
-      <p>Results will appear here with source links, metadata matches, and confidence notes.</p>
+      <h3>${t("emptyTitle")}</h3>
+      <p>${t("emptyText")}</p>
     </div>
   `;
 }
@@ -585,30 +794,31 @@ function updateSummary(results) {
   verifiedCount.textContent = counts.verified;
   reviewCount.textContent = counts.review;
   notFoundCount.textContent = counts.missing;
-  summaryStatus.textContent = `${results.length} checked`;
+  summaryStatus.textContent = t("checkedCount", { count: results.length });
 }
 
-function setBusy(isBusy, busyLabel = "Checking...") {
+function setBusy(isBusy, busyLabel = "checkingButton") {
   checkButton.disabled = isBusy;
   doiButton.disabled = isBusy;
   doiInput.disabled = isBusy;
   sampleButton.disabled = isBusy;
   clearButton.disabled = isBusy;
-  checkButton.textContent = isBusy ? busyLabel : "Check References";
+  checkButton.textContent = isBusy ? t(busyLabel) : t("checkButton");
 }
 
-function setStatus(text, tone) {
-  networkStatus.textContent = text;
+function setStatus(key, tone, params = {}) {
+  currentStatus = { key, tone, params };
+  networkStatus.textContent = t(key, params);
   networkStatus.className = `pill ${tone}`;
 }
 
 function toCsv(results) {
   const rows = [
-    ["status", "confidence", "input_reference", "matched_title", "source", "doi", "year", "journal", "notes"]
+    [t("csvStatus"), t("csvConfidence"), t("csvInputReference"), t("csvMatchedTitle"), t("csvSource"), t("csvDoi"), t("csvYear"), t("csvJournal"), t("csvNotes")]
   ];
   for (const result of results) {
     rows.push([
-      result.label,
+      getStatusLabel(result.status),
       result.score,
       result.reference,
       result.candidate?.title || "",
@@ -616,7 +826,7 @@ function toCsv(results) {
       result.candidate?.doi || "",
       result.candidate?.year || "",
       result.candidate?.journal || "",
-      result.notes.join(" ")
+      result.notes.map(formatNote).join(" ")
     ]);
   }
   return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
@@ -626,3 +836,5 @@ function csvEscape(value) {
   const text = String(value ?? "");
   return /[",\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
+
+setLanguage(currentLanguage);
