@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reference Audit</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Thesis Reference Audit</p>
+          <h1>Reference verifier for technical manuscripts</h1>
+        </div>
+        <div class="status-strip" aria-live="polite">
+          <span id="networkStatus" class="pill neutral">Ready</span>
+          <span id="summaryStatus" class="summary">0 checked</span>
+        </div>
+      </header>
+
+      <section class="workspace">
+        <aside class="input-panel" aria-labelledby="inputTitle">
+          <div class="panel-heading">
+            <h2 id="inputTitle">References</h2>
+            <button id="sampleButton" class="ghost-button" type="button">Sample</button>
+          </div>
+
+          <label class="file-drop" for="fileInput">
+            <input id="fileInput" type="file" accept=".txt,.bib,.ris,.md,.pdf,application/pdf">
+            <span>Import PDF, TXT, BibTeX, RIS, or Markdown</span>
+          </label>
+          <p class="helper-text">PDF import extracts the references section from selectable text. Scanned PDFs still need OCR first.</p>
+
+          <div class="doi-lookup">
+            <label for="doiInput">DOI Lookup</label>
+            <div class="doi-controls">
+              <input id="doiInput" type="text" inputmode="url" placeholder="10.1126/science.117.3046.528">
+              <button id="doiButton" class="secondary-button" type="button">Verify DOI</button>
+            </div>
+          </div>
+
+          <textarea id="referenceInput" spellcheck="false" placeholder="Paste bibliography entries here. Use one reference per line, or paste BibTeX / RIS blocks."></textarea>
+
+          <div class="controls">
+            <button id="checkButton" class="primary-button" type="button">Check References</button>
+            <button id="clearButton" class="secondary-button" type="button">Clear</button>
+          </div>
+        </aside>
+
+        <section class="results-panel" aria-labelledby="resultsTitle">
+          <div class="panel-heading">
+            <h2 id="resultsTitle">Audit Results</h2>
+            <button id="downloadButton" class="secondary-button" type="button" disabled>Download CSV</button>
+          </div>
+
+          <div class="metrics" aria-label="Audit summary">
+            <div>
+              <span id="verifiedCount">0</span>
+              <p>Verified</p>
+            </div>
+            <div>
+              <span id="reviewCount">0</span>
+              <p>Needs Review</p>
+            </div>
+            <div>
+              <span id="notFoundCount">0</span>
+              <p>Not Found</p>
+            </div>
+          </div>
+
+          <div id="resultsList" class="results-list">
+            <div class="empty-state">
+              <h3>No references checked yet</h3>
+              <p>Results will appear here with source links, metadata matches, and confidence notes.</p>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <template id="resultTemplate">
+      <article class="result-card">
+        <div class="result-header">
+          <span class="result-status"></span>
+          <span class="result-score"></span>
+        </div>
+        <h3 class="result-title"></h3>
+        <p class="result-original"></p>
+        <dl class="comparison-list"></dl>
+        <div class="source-links"></div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
